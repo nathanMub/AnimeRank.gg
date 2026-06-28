@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  image     String?
+  role      Role     @default(USER)
+
+  xp        Int      @default(0)
+  level     Int      @default(1)
+  streak    Int      @default(0)
+  lastVote  DateTime?
+
+  votes     Vote[]
+  favorites Favorite[]
+  comments  Comment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Anime {
+  id            Int      @id
+  slug          String   @unique
+
+  title         String?
+  image         String?
+
+  upvotes       Int      @default(0)
+  downvotes     Int      @default(0)
+
+  trendingScore Float    @default(0)
+  featured      Boolean  @default(false)
+
+  votes         Vote[]
+  favorites     Favorite[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([trendingScore])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+
+  userId    String
+  animeId   Int
+  type      VoteType
+
+  user      User     @relation(fields: [userId], references: [id])
+  anime     Anime    @relation(fields: [animeId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, animeId])
+  @@index([animeId])
+}
+
+model Favorite {
+  userId  String
+  animeId Int
+
+  user    User  @relation(fields: [userId], references: [id])
+  anime   Anime @relation(fields: [animeId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, animeId])
+}
+
+model Comment {
+  id        String @id @default(cuid())
+  content   String
+
+  userId    String
+  animeId   Int
+
+  parentId  String?
+
+  user      User   @relation(fields: [userId], references: [id])
+  anime     Anime  @relation(fields: [animeId], references: [id])
+
+  parent    Comment? @relation("Reply", fields: [parentId], references: [id])
+  replies   Comment[] @relation("Reply")
+
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
